@@ -69,9 +69,15 @@ var myStepDefinitionsWrapper = function () {
     var world = this;
     authSupport.login(email, password)
       .then(function (result) {
-        expect(result.response.statusCode).to.equal(200);
-        world.response = result.response;
-        world.authenticationToken = result.response.body;
+        if(negated){
+          expect(result.response.statusCode).to.equal(404);
+          world.response = result.response;
+        } else {
+          expect(result.response.statusCode).to.equal(200);
+          world.response = result.response;
+          world.authenticationToken = result.response.body;
+        }
+
         callback();
       })
       .catch(function(err){ callback(err); });
