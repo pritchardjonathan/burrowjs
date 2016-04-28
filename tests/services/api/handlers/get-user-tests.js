@@ -3,10 +3,11 @@
 const sinon = require("sinon"),
   mockery = require("mockery"),
   assert = require("chai").assert,
-  getUserHandler = require("../../../../services/api/handlers/get-user");
+  getUserHandler = require("../../../../services/api/handlers/get-user"),
+  MongoDbStub = require("../../../stubs/MongoDbStub");
 
 describe("get user", function(){
-  var sandbox = sinon.sandbox.create(),
+  var sandbox,
     collectionStub,
     sut;
   before(function(){
@@ -15,28 +16,17 @@ describe("get user", function(){
       warnOnUnregistered: false,
       useCleanCache: true
     });
-  });
 
+  });
 
   beforeEach(function () {
     // Create a sandbox for the test
     sandbox = sinon.sandbox.create();
-    collectionStub = {
-      find: sandbox.stub(),
-      skip: sandbox.stub(),
-      take: sandbox.stub(),
-      toArray: sandbox.stub()
-    };
-    collectionStub.find.returns(collectionStub);
-    collectionStub.skip.returns(collectionStub);
-    collectionStub.take.returns(collectionStub);
-    collectionStub.toArray.returns(Promise.resolve([]));
 
-    let mongoDbStub = {
-      collection: function(){ return collectionStub }
-    };
+    let mongoDbStub = new MongoDbStub(sandbox);
+    collectionStub = mongoDbStub.collectionStub;
 
-    sut = getUserHandler(mongoDbStub);
+    sut = getUserHandler(mongoDbStub.stub);
   });
 
   afterEach(function () {
