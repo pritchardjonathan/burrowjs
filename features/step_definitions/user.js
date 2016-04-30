@@ -108,9 +108,11 @@ var myStepDefinitionsWrapper = function () {
       .then(function(result){
 
         if(negated){
+          expect(result.body).to.be.a("array");
           expect(result.body.length).to.equal(0);
         } else {
           expect(result.response.statusCode).to.equal(200);
+          expect(result.body).to.be.a("array");
           expect(result.body.length).to.equal(1);
           world.users = world.users.concat(result.data);
         }
@@ -225,6 +227,7 @@ var myStepDefinitionsWrapper = function () {
     var world = this;
     userSupport.get(null, null, null, true, world.authenticationToken)
       .then(function(result){
+        expect(result.body).to.be.a("array");
         expect(result.body.length).to.equal(1);
         return userSupport.remove(result.body[0].id, world.authenticationToken)
           .then(function(result){
@@ -239,6 +242,7 @@ var myStepDefinitionsWrapper = function () {
     var world = this;
     userSupport.get(userName, null, null, null, world.authenticationToken)
       .then(function(result){
+        expect(result.body).to.be.a("array");
         expect(result.body.length).to.be.at.least(1);
         return userSupport.get(result.body[0].id)
           .then(function(result){
