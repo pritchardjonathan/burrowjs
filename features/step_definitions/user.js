@@ -32,6 +32,7 @@ var myStepDefinitionsWrapper = function () {
       })
       .catch(function(err){ callback(err); });
   });
+
   this.Given(/^a user exists$/, function(callback){
     const world = this,
       user = { email: world.defaultEmail, password: world.defaultPassword };
@@ -108,11 +109,20 @@ var myStepDefinitionsWrapper = function () {
       .then(function(result){
 
         if(negated){
-          expect(result.body.length).to.equal(0);
+          if(world.authenticationToken){
+            // User is authenticated so call should succeed with empty result
+            expect(result.response.statusCode).to.equal(200);
+            expect(result.body).to.be.a("array");
+            expect(result.body.length).to.equal(0);
+          } else {
+            expect(result.response.statusCode).to.equal(401);
+          }
+
         } else {
           expect(result.response.statusCode).to.equal(200);
+          expect(result.body).to.be.a("array");
           expect(result.body.length).to.equal(1);
-          world.users = world.users.concat(result.data);
+          world.users = world.users.concat(result.body);
         }
         world.response = result.response;
         callback();
@@ -124,8 +134,8 @@ var myStepDefinitionsWrapper = function () {
     var world = this;
     userSupport.get(null, null, null, true, world.authenticationToken)
       .then(function(result){
-        world.users = world.users.concat(result.data);
-        world.searchResults = result.data;
+        if(result.body instanceof Array) world.users = world.users.concat(result.body);
+        world.searchResults = result.body;
         world.response = result.response;
         callback();
       })
@@ -134,10 +144,10 @@ var myStepDefinitionsWrapper = function () {
 
   this.When(/^I search for a user with "([^"]*)" search text$/, function (searchText, callback) {
     var world = this;
-    userSupport.get(searchText, null, null, false)
+    userSupport.get(searchText, null, null, false, world.authenticationToken)
       .then(function(result){
         expect(result.response.statusCode).to.equal(200);
-        world.searchResults = result.data;
+        world.searchResults = result.body;
         world.response = result.response;
         callback();
       })
@@ -146,49 +156,66 @@ var myStepDefinitionsWrapper = function () {
 
   this.When(/^I search for "([^"]*)" skipping the first (\d+) and taking the next (\d+)$/, function (searchText, skip, take, callback) {
     var world = this;
-    userSupport.get(searchText, skip, take, false)
+    userSupport.get(searchText, +skip, +take, false, world.authenticationToken)
       .then(function(result){
         expect(result.response.statusCode).to.equal(200);
-        world.searchResults = result.data;
+        world.searchResults = result.body;
         world.response = result.response;
         callback();
       })
       .catch(function(err){ callback(err); });
   });
 
-  this.Then(/^search results should contain (\d+) users$/, function (resultCount, callback) {
-    expect(this.searchResults.length).to.equal(resultCount);
+  this.Then(/^search results should contain (\d+) users$/, function (resultCount) {
+    expect(this.searchResults.length).to.equal(+resultCount);
   });
 
-  this.Then(/^user (\d+) in the search results should be called "([^"]*)"$/, function (userIndex, userName, callback) {
-    expect(this.searchResults.length).to.be.atLeast(userIndex); // 1 based index
+  this.Then(/^user (\d+) in the search results should be called "([^"]*)"$/, function (userIndex, userName) {
+    userIndex = userIndex - 1;
+    expect(this.searchResults).to.not.be.undefined;
+    expect(this.searchResults.length).to.be.at.least(userIndex + 1);
+    expect(this.searchResults[userIndex].name).to.equal(userName);
   });
 
   this.Given(/^(\d+) users exist with the name containing "([^"]*)"$/, function (userCount, userNameFragment, callback) {
-    var matchingUserCount = 0;
-    userNameFragment = userNameFragment.toLowerCase();
-    for (let user of this.searchResults){
-      if(user.name && user.name.toLowerCase().indexOf(userNameFragment) != -1) matchingUserCount++;
+    const world = this,
+      creationPromises = [];
+    for(var i = 0; i < +userCount; i++){
+      let user = {
+        name: userNameFragment + i,
+        email: `test${i}@test.com`,
+        password: "5omeP4ss"
+      };
+      creationPromises.push(userSupport.register(user));
+      world.users.push(user);
     }
-    expect(matchingUserCount).to.equal(userCount);
+
+    Promise.all(creationPromises)
+      .then(function(){
+        callback();
+      })
+      .catch(function(err){ callback(err); });
   });
 
-  this.Then(/^the search results should match the last (\d+) users created$/, function (fromIndex, callback) {
+  this.Then(/^the search results should contain (\d+) items$/, function(expectedItemCount){
+    expect(this.searchResults).to.not.be.undefined;
+    expect(this.searchResults.length).to.equal(+expectedItemCount);
+  });
+
+  this.Then(/^the search results should match the last (\d+) users created$/, function (fromIndex) {
     var usersCreated = this.users.slice(fromIndex, this.users.length);
     for(let userResult of this.searchResults){
       var matchFound = usersCreated.some((createdUser) => {
-        return createdUser.id == userResult.id &&
-          createdUser.name == userResult.name &&
+        return createdUser.name == userResult.name &&
           createdUser.email == userResult.email;
       });
-      expect(matchFound).to.be.true();
+      expect(matchFound).to.be.true;
     }
-    callback();
   });
 
   this.When(/^I try to change my name to "([^"]*)"$/, function (newName, callback) {
     var world = this;
-    userSupport.update({ name: newName }, world.authenticatedUser.id)
+    userSupport.update({ name: newName }, world.authenticatedUser.id, world.authenticationToken)
       .then(function(result){
         if(result.user) world.users.push(result.user);
         world.response = result.response;
@@ -203,8 +230,8 @@ var myStepDefinitionsWrapper = function () {
     userSupport.get(null, null, null, true, world.authenticationToken)
       .then(function(result){
         expect(result.response.statusCode).to.equal(200);
-        expect(result.data.length).to.equal(1);
-        expect(updatedUser).to.deepEqual(result.data[0]);
+        expect(result.body.length).to.equal(1);
+        expect(updatedUser).to.deepEqual(result.body[0]);
         world.response = result.response;
         callback();
       })
@@ -225,6 +252,7 @@ var myStepDefinitionsWrapper = function () {
     var world = this;
     userSupport.get(null, null, null, true, world.authenticationToken)
       .then(function(result){
+        expect(result.body).to.be.a("array");
         expect(result.body.length).to.equal(1);
         return userSupport.remove(result.body[0].id, world.authenticationToken)
           .then(function(result){
@@ -239,6 +267,7 @@ var myStepDefinitionsWrapper = function () {
     var world = this;
     userSupport.get(userName, null, null, null, world.authenticationToken)
       .then(function(result){
+        expect(result.body).to.be.a("array");
         expect(result.body.length).to.be.at.least(1);
         return userSupport.get(result.body[0].id)
           .then(function(result){
@@ -249,23 +278,27 @@ var myStepDefinitionsWrapper = function () {
       .catch(function(err){ callback(err); });
   });
 
-  this.Then(/^user number (\d+) should have the name "([^"]*)"$/, function (userIndex, userName, callback) {
-    expect(world.searchResults.length).to.be.at.least(userIndex);
-    expect(world.searchResults[userIndex].name).to.equal(userName);
+  this.Then(/^user number (\d+) should have the name "([^"]*)"$/, function (userIndex, userName) {
+    userIndex = userIndex - 1;
+    expect(this.searchResults.length).to.be.at.least(userIndex);
+    expect(this.searchResults[userIndex].name).to.equal(userName);
   });
 
-  this.Then(/^user number (\d+) should have the email "([^"]*)"$/, function (userIndex, userEmail, callback) {
-    expect(world.searchResults.length).to.be.at.least(userIndex);
-    expect(world.searchResults[userIndex].email).to.equal(userEmail);
+  this.Then(/^user number (\d+) should have the email "([^"]*)"$/, function (userIndex, userEmail) {
+    userIndex = userIndex - 1;
+    expect(this.searchResults.length).to.be.at.least(userIndex);
+    expect(this.searchResults[userIndex].email).to.equal(userEmail);
   });
 
-  this.Then(/^user number (\d+) should not have a password property$/, function (userIndex, callback) {
-    expect(world.searchResults.length).to.be.at.least(userIndex);
-    expect(world.searchResults[userIndex].password).to.be.undefined;
+  this.Then(/^user number (\d+) should not have a password property$/, function (userIndex) {
+    userIndex = userIndex - 1;
+    expect(this.searchResults.length).to.be.at.least(userIndex);
+    expect(this.searchResults[userIndex].password).to.be.undefined;
   });
 
-  this.Then(/^retrieved user count should be (\d+)$/, function (userCount, callback) {
-    expect(world.searchResults.length).to.equal(userCount);
+  this.Then(/^retrieved user count should be (\d+)$/, function (userCount) {
+    expect(this.searchResults).to.not.be.undefined;
+    expect(this.searchResults.length).to.equal(+userCount);
   });
 
 };
