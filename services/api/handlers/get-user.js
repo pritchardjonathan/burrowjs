@@ -10,15 +10,18 @@ module.exports = function(db){
   return function *(){
     try {
       var query;
-      const searchText = this.request.query["searchtext"],
-        authenticated = this.request.query["authenticated"];
+      const searchText = this.request.query["searchtext"];
+      const authenticated = this.request.query["authenticated"] === "true";
+      const skip = this.request.query["skip"];
+      const take = this.request.query["take"];
+
       if(authenticated) query = usersCollection.find({ _id: mongoDb.ObjectID(this.state.user.id) });
       else if(searchText) query = usersCollection.find({ $text: { $search: searchText } });
       else query = usersCollection.find();
 
       query = query
-        .skip(this.request.query["skip"] !== undefined ? this.request.query["skip"] : defaultSkip)
-        .limit(this.request.query["take"] !== undefined ? this.request.query["take"] : defaultTake);
+        .skip(skip !== undefined ? +skip : defaultSkip)
+        .limit(take !== undefined ? +take : defaultTake);
 
       var users = yield query.toArray();
 

@@ -23,6 +23,7 @@ Feature: As an authenticated user I want to be able to get my details and search
   Scenario: Search for users
     Given a user with name "Joe Blogs" email "test@test.com" and password "somep4ss" exists
     And a user with name "Sam Smith" email "test2@test.com" and password "somep4ss2" exists
+    And I am logged in
     When I search for a user with "blogs" search text
     Then search results should contain 1 users
     And user 1 in the search results should be called "Joe Blogs"
@@ -30,7 +31,10 @@ Feature: As an authenticated user I want to be able to get my details and search
   @createsUser
   @clearDb
   Scenario: Page user search results
-    Given 20 users exist with the name containing "Joe Blogs"
+    Given a user exists
+    And I am logged in
+    And 20 users exist with the name containing "Joe Blogs"
     When I search for "Joe Blogs" skipping the first 10 and taking the next 10
-    Then the search results should match the last 10 users created
+    Then the search results should contain 10 items
+    And the search results should match the last 10 users created
 
