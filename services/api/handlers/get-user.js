@@ -1,6 +1,5 @@
 "use strict";
-const route = require("koa-route");
-const mongoDb = require("mongodb")
+const mongoDb = require("mongodb");
 
 const defaultSkip = 0;
 const defaultTake = 10;
@@ -11,8 +10,10 @@ module.exports = function(db){
   return function *(){
     try {
       var query;
-      if(this.request.query["authenticated"]) query = usersCollection.find({ _id: mongoDb.ObjectID(this.state.user.id) });
-      else if(this.request.query["searchtext"]) query = usersCollection.find({ $text: this.searchtext });
+      const searchText = this.request.query["searchtext"],
+        authenticated = this.request.query["authenticated"];
+      if(authenticated) query = usersCollection.find({ _id: mongoDb.ObjectID(this.state.user.id) });
+      else if(searchText) query = usersCollection.find({ $text: { $search: searchText } });
       else query = usersCollection.find();
 
       query = query
@@ -24,6 +25,7 @@ module.exports = function(db){
       // Sanitise result
       users = users.map(function(user){
         return {
+          id: user._id,
           name: user.name,
           email: user.email
         };

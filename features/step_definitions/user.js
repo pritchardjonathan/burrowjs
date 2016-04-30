@@ -21,23 +21,24 @@ var myStepDefinitionsWrapper = function () {
   });
 
   this.When(/^I try to register (a|another) user with email "([^"]*)"$/, function (ignore1, email, callback) {
-    var world = this;
+    const world = this,
+      user = { email: email, password: "SomeP@55" };
     world.email = email;
-    userSupport.register({ email: email, password: "SomeP@55" })
+    userSupport.register(user)
       .then(function(result){
-        if(result.user) world.users.push(result.user);
+        world.users.push(user);
         world.response = result.response;
         callback();
       })
       .catch(function(err){ callback(err); });
   });
   this.Given(/^a user exists$/, function(callback){
-    var world = this;
-    userSupport.register({ email: world.defaultEmail, password: world.defaultPassword })
+    const world = this,
+      user = { email: world.defaultEmail, password: world.defaultPassword };
+    userSupport.register(user)
       .then(function(result){
         expect(result.response.statusCode).to.equal(200);
-        expect(result.user).to.not.be.falsy;
-        world.users.push(result.user);
+        world.users.push(user);
         world.response = result.response;
         callback();
       })
@@ -58,11 +59,12 @@ var myStepDefinitionsWrapper = function () {
   });
 
   this.Given(/^a user with name "([^"]*)" email "([^"]*)" and password "([^"]*)" exists$/, function (name, email, password, callback) {
-    var world = this;
-    userSupport.register({ name: name, email: email, password: password })
+    const world = this,
+      user = { name: name, email: email, password: password };
+    userSupport.register(user)
       .then(function(result){
         expect(result.response.statusCode).to.equal(200);
-        if(result.user) world.users.push(result.user);
+        world.users.push(user);
         world.response = result.response;
         callback();
       })
@@ -104,8 +106,9 @@ var myStepDefinitionsWrapper = function () {
     var world = this;
     userSupport.get(null, null, null, true, world.authenticationToken)
       .then(function(result){
+
         if(negated){
-          expect(result.response.statusCode).to.not.equal(200);
+          expect(result.body.length).to.equal(0);
         } else {
           expect(result.response.statusCode).to.equal(200);
           expect(result.body.length).to.equal(1);
@@ -210,47 +213,54 @@ var myStepDefinitionsWrapper = function () {
 
   this.When(/^I try to update "([^"]*)" name to "([^"]*)"$/, function (targetUserName, newName, callback) {
     var world = this;
-    userSupport.get(targetUserName, null, null, false)
+    userSupport.get(targetUserName, null, null, false, world.authenticationToken)
       .then(function(result){
         world.response = result.response;
+        callback();
       })
       .catch(function(err){ callback(err); });
   });
 
   this.When(/^I try to delete myself from the system$/, function (callback) {
     var world = this;
-    userSupport.get(world.authenticatedUser.id)
+    userSupport.get(null, null, null, true, world.authenticationToken)
       .then(function(result){
-        world.response = result.response;
+        expect(result.body.length).to.equal(1);
+        return userSupport.remove(result.body[0].id, world.authenticationToken)
+          .then(function(result){
+            world.response = result.response;
+            callback();
+          });
       })
       .catch(function(err){ callback(err); });
   });
 
   this.When(/^I try to delete "([^"]*)" from the system$/, function (userName, callback) {
     var world = this;
-    userSupport.get(userName, null, null, true, world.authenticationToken)
+    userSupport.get(userName, null, null, null, world.authenticationToken)
       .then(function(result){
-        expect(result.body.length).to.be.atLeast(1);
+        expect(result.body.length).to.be.at.least(1);
         return userSupport.get(result.body[0].id)
           .then(function(result){
             world.response = result.response;
+            callback()
           })
       })
       .catch(function(err){ callback(err); });
   });
 
   this.Then(/^user number (\d+) should have the name "([^"]*)"$/, function (userIndex, userName, callback) {
-    expect(world.searchResults.length).to.be.atLeast(userIndex);
+    expect(world.searchResults.length).to.be.at.least(userIndex);
     expect(world.searchResults[userIndex].name).to.equal(userName);
   });
 
   this.Then(/^user number (\d+) should have the email "([^"]*)"$/, function (userIndex, userEmail, callback) {
-    expect(world.searchResults.length).to.be.atLeast(userIndex);
+    expect(world.searchResults.length).to.be.at.least(userIndex);
     expect(world.searchResults[userIndex].email).to.equal(userEmail);
   });
 
   this.Then(/^user number (\d+) should not have a password property$/, function (userIndex, callback) {
-    expect(world.searchResults.length).to.be.atLeast(userIndex);
+    expect(world.searchResults.length).to.be.at.least(userIndex);
     expect(world.searchResults[userIndex].password).to.be.undefined;
   });
 

@@ -26,18 +26,19 @@ exports.get = function(searchText, skip, take, authenticated, authenticationToke
   if(typeof take === "number") queryString["take"] = take;
   if(typeof authenticated === "boolean"){
     queryString["authenticated"] = authenticated;
-    headers["Authorization"] = "Bearer " + authenticationToken;
   }
+  headers["Authorization"] = "Bearer " + authenticationToken;
   return request({
     uri: apiUrl,
     method: "GET",
     resolveWithFullResponse: true,
     simple: false,
     qs: queryString,
-    headers: headers
+    headers: headers,
+    json: true
   }).then(function(response){
-    var body;
-    if(response.statusCode >= 200 && response.statusCode < 300) body = JSON.parse(response.body);
+    var body = response.body;
+    if(!body) body = [];
     return { body, response };
   });
 };
@@ -56,12 +57,15 @@ exports.update = function(updateFields, userId){
   })
 };
 
-exports.remove = function(userId){
+exports.remove = function(userId, authorizationToken){
   return request({
     uri: `${apiUrl}/${userId}`,
     method: "DELETE",
     resolveWithFullResponse: true,
-    simple: false
+    simple: false,
+    headers: {
+      Authorization: "Bearer " + authorizationToken
+    }
   }).then(function(response){
     return { response };
   })

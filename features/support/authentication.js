@@ -16,7 +16,7 @@ exports.login = function(email, password){
 };
 
 exports.logout = function(callback){
-  request({
+  return request({
     uri: apiUrl,
     method: "DELETE",
     resolveWithFullResponse: true,

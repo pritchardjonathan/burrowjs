@@ -93,14 +93,14 @@ var myStepDefinitionsWrapper = function () {
     } else {
       email = world.defaultEmail;
       password = world.defaultPassword;
-      authSupport.login(email, password)
-        .then(function (result) {
-          expect(result.response.statusCode).to.not.equal(200);
-          world.response = result.response;
-          callback();
-        })
-        .catch(function(err){ callback(err); });
     }
+    authSupport.login(email, password)
+      .then(function (result) {
+        expect(result.response.statusCode).to.not.equal(200);
+        world.response = result.response;
+        callback();
+      })
+      .catch(function(err){ callback(err); });
   });
 
   this.Given(/^I am logged out$/, function (callback) {

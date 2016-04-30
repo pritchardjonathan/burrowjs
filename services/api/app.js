@@ -4,6 +4,7 @@ const koaJwt = require("koa-jwt");
 
 const app = new Koa();
 const db = require("promised-mongo")("sovote");
+require("../../common/ensure-mongodb-indexes")(db);
 
 app.use(require("koa-bodyparser")());
 
@@ -15,6 +16,7 @@ app.use(koaJwt({ secret: process.env.JWT_SECRET }));
 
 // Authenticated
 app.use(route.get('/api/user', require("./handlers/get-user")(db)));
+app.use(route.delete('/api/user/:id', require("./handlers/delete-user")(db)));
 
 app.listen(5000);
 
