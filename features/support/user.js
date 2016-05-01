@@ -13,7 +13,6 @@ exports.register = function(userData){
     simple: false
   })
     .then(function( response){
-      var body;
       return { body: response.body, response };
     });
 };
@@ -43,17 +42,18 @@ exports.get = function(searchText, skip, take, authenticated, authenticationToke
   });
 };
 
-exports.update = function(updateFields, userId){
+exports.update = function(updateFields, userId, authorizationToken){
   return request({
     uri: `${apiUrl}/${userId}`,
     json: updateFields,
-    method: "PUT",
+    method: "POST",
     resolveWithFullResponse: true,
-    simple: false
+    simple: false,
+    headers: {
+      Authorization: "Bearer " + authorizationToken
+    }
   }).then(function(response){
-    var body;
-    if(response.statusCode >= 200 && response.statusCode < 300) body = JSON.parse(response.body);
-    return { body, response };
+    return { body: response.body, response };
   })
 };
 

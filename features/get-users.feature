@@ -18,7 +18,6 @@ Feature: As an authenticated user I want to be able to get my details and search
     Given I am logged out
     Then I should not be able to retrieve the authenticated users details
 
-  @createsUser
   @clearDb
   Scenario: Search for users
     Given a user with name "Joe Blogs" email "test@test.com" and password "somep4ss" exists
@@ -28,7 +27,6 @@ Feature: As an authenticated user I want to be able to get my details and search
     Then search results should contain 1 users
     And user 1 in the search results should be called "Joe Blogs"
 
-  @createsUser
   @clearDb
   Scenario: Page user search results
     Given a user exists

@@ -10,10 +10,14 @@ var myStepDefinitionsWrapper = function () {
   if(!this.world) this.world = world;
 
   this.When(/^I try to register some user$/, function (callback) {
-    var world = this;
-    userSupport.register({ email: world.defaultEmail, password: world.defaultPassword })
+    var world = this,
+      user = { email: world.defaultEmail, password: world.defaultPassword };
+    userSupport.register(user)
       .then(function(result){
-        if(result.user) world.users.push(result.user);
+        if(result.body){
+          user.id = result.body.id; // keep password and add id returned from API
+          world.users.push(user);
+        }
         world.response = result.response;
         callback();
       })
@@ -26,7 +30,10 @@ var myStepDefinitionsWrapper = function () {
     world.email = email;
     userSupport.register(user)
       .then(function(result){
-        world.users.push(user);
+        if(result.body){
+          user.id = result.body.id; // keep password and add id returned from API
+          world.users.push(user);
+        }
         world.response = result.response;
         callback();
       })
@@ -39,6 +46,7 @@ var myStepDefinitionsWrapper = function () {
     userSupport.register(user)
       .then(function(result){
         expect(result.response.statusCode).to.equal(200);
+        user.id = result.body.id; // keep password and add id returned from API
         world.users.push(user);
         world.response = result.response;
         callback();
@@ -52,6 +60,7 @@ var myStepDefinitionsWrapper = function () {
     userSupport.register(user)
       .then(function(result){
         expect(result.response.statusCode).to.equal(200);
+        user.id = result.body.id; // keep password and add id returned from API
         world.users.push(user);
         world.response = result.response;
         callback();
@@ -65,6 +74,7 @@ var myStepDefinitionsWrapper = function () {
     userSupport.register(user)
       .then(function(result){
         expect(result.response.statusCode).to.equal(200);
+        user.id = result.body.id; // keep password and add id returned from API
         world.users.push(user);
         world.response = result.response;
         callback();
@@ -73,10 +83,14 @@ var myStepDefinitionsWrapper = function () {
   });
 
   this.When(/^I try to register (a|another) user with email "([^"]*)" and password "([^"]*)"$/, function (ignore1, email, password, callback) {
-    var world = this;
-    userSupport.register({ email: email, password: password })
+    var world = this,
+      user = { email: email, password: password };
+    userSupport.register(user)
       .then(function(result){
-        if(result.user) world.users.push(result.user);
+        if(result.body){
+          user.id = result.body.id; // keep password and add id returned from API
+          world.users.push(user);
+        }
         world.response = result.response;
         callback();
       })
@@ -215,9 +229,38 @@ var myStepDefinitionsWrapper = function () {
 
   this.When(/^I try to change my name to "([^"]*)"$/, function (newName, callback) {
     var world = this;
-    userSupport.update({ name: newName }, world.authenticatedUser.id, world.authenticationToken)
+    userSupport.get(null, null, null, true, world.authenticationToken)
+      .then(function(getResult){
+        expect(getResult.response.statusCode).to.equal(200);
+        expect(getResult.body).to.not.be.undefined;
+        expect(getResult.body).to.be.a("array");
+        expect(getResult.body.length).to.equal(1);
+        return userSupport.update({ name: newName }, getResult.body[0].id, world.authenticationToken)
+          .then(function(result){
+            // Reflect what the new state should be for later comparison
+            world.users[0].name = newName;
+            world.response = result.response;
+            callback();
+          })
+      })
+      .catch(function(err){ callback(err); });
+  });
+
+  this.When(/^I try to change the name of a user with id "([^"]*)" to "([^"]*)"$/, function (userId, newName, callback) {
+    var world = this;
+    userSupport.update({ name: newName }, userId, world.authenticationToken)
       .then(function(result){
-        if(result.user) world.users.push(result.user);
+        if(result.body) world.users.push(result.body);
+        world.response = result.response;
+        callback();
+      })
+      .catch(function(err){ callback(err); });
+  });
+
+  this.When(/^I try to perform an empty update$/, function (callback) {
+    var world = this;
+    userSupport.update({ }, world.users[0].id, world.authenticationToken)
+      .then(function(result){
         world.response = result.response;
         callback();
       })
@@ -231,7 +274,9 @@ var myStepDefinitionsWrapper = function () {
       .then(function(result){
         expect(result.response.statusCode).to.equal(200);
         expect(result.body.length).to.equal(1);
-        expect(updatedUser).to.deepEqual(result.body[0]);
+        delete updatedUser.password;
+        expect(updatedUser).to.deep.equal(result.body[0]);
+
         world.response = result.response;
         callback();
       })
@@ -242,6 +287,32 @@ var myStepDefinitionsWrapper = function () {
     var world = this;
     userSupport.get(targetUserName, null, null, false, world.authenticationToken)
       .then(function(result){
+        expect(result.response.statusCode).to.equal(200);
+        expect(result.body.length).to.equal(1);
+        return userSupport.update({ name: newName }, result.body[0].id, world.authenticationToken)
+          .then(function(result){
+            world.response = result.response;
+            callback();
+          });
+      })
+      .catch(function(err){ callback(err); });
+  });
+
+  this.When(/^I try to change my email to "([^"]*)"$/, function (newEmail, callback) {
+    const world = this;
+    userSupport.update({ email: newEmail }, world.users[0].id, world.authenticationToken)
+      .then(function(result){
+        world.response = result.response;
+        callback();
+      })
+      .catch(function(err){ callback(err); });
+  });
+
+  this.When(/^I try to change my password to "([^"]*)"$/, function (newPassword, callback) {
+    const world = this;
+    userSupport.update({ password: newPassword }, world.users[0].id, world.authenticationToken)
+      .then(function(result){
+        world.users[0].password = newPassword;
         world.response = result.response;
         callback();
       })
@@ -300,6 +371,8 @@ var myStepDefinitionsWrapper = function () {
     expect(this.searchResults).to.not.be.undefined;
     expect(this.searchResults.length).to.equal(+userCount);
   });
+
+
 
 };
 module.exports = myStepDefinitionsWrapper;

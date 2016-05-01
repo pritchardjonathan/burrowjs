@@ -49,8 +49,11 @@ module.exports = function(db) {
               });
             })
             .then(function(createdUser){
-              delete createdUser.passwordHash;
-              self.body = createdUser;
+              self.body = {
+                id: createdUser._id,
+                name: createdUser.name,
+                email: createdUser.email
+              };
             });
         });
   }
