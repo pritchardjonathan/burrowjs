@@ -46,24 +46,24 @@ describe("get user", function(){
     yield sut.apply(koaContextStub);
     assert.isTrue(collectionStub.find.calledOnce, "Doesn't query mongodb");
     assert.isTrue(collectionStub.skip.calledWith(0), "Doesn't query mongodb with the default skip() value");
-    assert.isTrue(collectionStub.take.calledWith(10), "Doesn't query mongodb with the default take() value");
+    assert.isTrue(collectionStub.limit.calledWith(10), "Doesn't query mongodb with the default take() value");
   });
   it("queries mongodb for a page of users (skip/take)", function *(){
-    koaContextStub.request.body = { skip: 10, take: 20 };
+    koaContextStub.request.query = { skip: 10, take: 20 };
     yield sut.apply(koaContextStub);
-    assert.isTrue(collectionStub.skip.calledWith(ctx.skip), "Doesn't skip the correct number of results");
-    assert.isTrue(collectionStub.take.calledWith(ctx.take), "Doesn't query mongodb for the correct number of results");
+    assert.isTrue(collectionStub.skip.calledWith(koaContextStub.request.query.skip), "Doesn't skip the correct number of results");
+    assert.isTrue(collectionStub.limit.calledWith(koaContextStub.request.query.take), "Doesn't query mongodb for the correct number of results");
   });
   it("queries mongodb by search text", function *(){
-    koaContextStub.request.body = { searchtext: "joe" };
+    koaContextStub.request.query = { searchtext: "joe" };
     yield sut.apply(koaContextStub);
-    assert.isTrue(collectionStub.find.calledWith(sinon.match({ $text: "joe" })), "Doesn't perform a full-text search on the user mongodb collection ");
+    assert.isTrue(collectionStub.find.calledWith(sinon.match({ $text: { $search: "joe" } })), "Doesn't perform a full-text search on the user mongodb collection ");
   });
   it("queries mongodb for the active user", function *(){
-    koaContextStub.request.state = { user: { id: "123ABC", name: "Joe Bloggs", email: "test@test.com" } };
-    koaContextStub.request.authenticated = true;
+    koaContextStub.state = { user: { id: "507f191e810c19729de860ea", name: "Joe Bloggs", email: "test@test.com" } };
+    koaContextStub.request.query.authenticated = "true";
 
     yield sut.apply(koaContextStub);
-    assert.isTrue(collectionStub.find.calledWith(sinon.match({ _id: "123ABC" })), "Doesn't query mongodb for authenticated users details");
+    assert.equal(collectionStub.find.firstCall.args[0]._id.toString(), "507f191e810c19729de860ea", "Doesn't query mongodb for authenticated users details");
   });
 });
