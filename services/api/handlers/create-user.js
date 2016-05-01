@@ -15,10 +15,6 @@ module.exports = function(db) {
       return;
     }
 
-    if(!password){
-      self.throw("A password is required", 400);
-      return;
-    }
     if(!email){
       self.throw("An email is required", 400);
       return;
