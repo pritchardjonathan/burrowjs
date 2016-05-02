@@ -30,7 +30,7 @@ describe("get user", function(){
 
     koaContextStub = new KoaContextStub(sandbox).stub;
 
-    sut = getUserHandler(mongoDbStub.stub);
+    sut = getUserHandler(mongoDbStub.stub());
   });
 
   afterEach(function () {

@@ -31,7 +31,7 @@ describe("create user", function(){
 
     koaContextStub = new KoaContextStub(sandbox).stub;
 
-    sut = getUserHandler(mongoDbStub.stub);
+    sut = getUserHandler(mongoDbStub.stub());
 
   });
 
