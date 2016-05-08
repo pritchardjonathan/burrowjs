@@ -6,7 +6,7 @@ const sinon = require("sinon"),
   MongoDbStub = require("../../stubs/MongoDbStub"),
   KoaStub = require("../../stubs/KoaStub");
 
-describe("app startup", function(){
+describe("api app", function(){
   var sandbox,
     mongoDbStub,
     koaStub,

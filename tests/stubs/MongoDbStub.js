@@ -8,7 +8,8 @@ module.exports = class MongoDbStub{
       skip: sandbox.stub(),
       limit: sandbox.stub(),
       toArray: sandbox.stub(),
-      insert: sandbox.stub()
+      insert: sandbox.stub(),
+      update: sandbox.stub()
     };
     self.collectionStub.find.returns(self.collectionStub);
     self.collectionStub.skip.returns(self.collectionStub);
@@ -19,4 +20,4 @@ module.exports = class MongoDbStub{
       collection: sandbox.stub().returns(self.collectionStub)
     });
   }
-}
+};

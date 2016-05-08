@@ -8,7 +8,7 @@ const sinon = require("sinon"),
   KoaContextStub = require("../../../stubs/KoaContextStub"),
   bcrypt = require("bcrypt");
 
-describe("create user", function(){
+describe("api create user", function(){
   var sandbox,
     collectionStub,
     koaContextStub,
