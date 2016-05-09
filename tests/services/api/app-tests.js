@@ -6,45 +6,49 @@ const sinon = require("sinon"),
   MongoDbStub = require("../../stubs/MongoDbStub"),
   KoaStub = require("../../stubs/KoaStub");
 
-describe("api app", function(){
-  var sandbox,
-    mongoDbStub,
-    koaStub,
-    ensureIndexesStub,
-    sut;
-  before(function(){
-    mockery.enable({
-      warnOnReplace: false,
-      warnOnUnregistered: false,
-      useCleanCache: true
+describe("api service", function(){
+
+  describe("app", function(){
+    var sandbox,
+      mongoDbStub,
+      koaStub,
+      ensureIndexesStub,
+      sut;
+    before(function(){
+      mockery.enable({
+        warnOnReplace: false,
+        warnOnUnregistered: false,
+        useCleanCache: true
+      });
+      mockery.registerAllowable("../../../services/api/app");
     });
-    mockery.registerAllowable("../../../services/api/app");
-  });
 
-  beforeEach(function () {
-    // Create a sandbox for the test
-    sandbox = sinon.sandbox.create();
+    beforeEach(function () {
+      // Create a sandbox for the test
+      sandbox = sinon.sandbox.create();
 
-    mongoDbStub = new MongoDbStub(sandbox);
-    mockery.registerMock("promised-mongo", mongoDbStub.stub);
+      mongoDbStub = new MongoDbStub(sandbox);
+      mockery.registerMock("promised-mongo", mongoDbStub.stub);
 
-    koaStub = new KoaStub(sandbox);
-    mockery.registerMock("koa", koaStub.stub);
+      koaStub = new KoaStub(sandbox);
+      mockery.registerMock("koa", koaStub.stub);
 
-    ensureIndexesStub = sandbox.stub();
-    mockery.registerMock("../../common/ensure-mongodb-indexes", ensureIndexesStub);
+      ensureIndexesStub = sandbox.stub();
+      mockery.registerMock("./ensure-mongodb-indexes", ensureIndexesStub);
 
-    sut = require("../../../services/api/app");
+      sut = require("../../../services/api/app");
 
-  });
+    });
 
-  afterEach(function () {
-    // Restore all the things made through the sandbox
-    sandbox.restore();
-  });
+    afterEach(function () {
+      // Restore all the things made through the sandbox
+      sandbox.restore();
+    });
 
-  it("ensures indexes on startup", function *(){;
-    assert.isTrue(ensureIndexesStub.calledOnce, "Doesn't ensure indexes");
+    it("ensures indexes on startup", function *(){;
+      assert.isTrue(ensureIndexesStub.calledOnce, "Doesn't ensure indexes");
+    });
+
   });
 
 });

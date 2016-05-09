@@ -15,7 +15,7 @@ module.exports = function App(){
     ignoreAttrs: true
   };
 
-  require("../../common/ensure-mongodb-indexes")(db);
+  require("./ensure-mongodb-indexes")(db);
 
   cron.schedule(config.qAExtractCron, importQAAtomFeed);
 

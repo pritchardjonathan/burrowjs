@@ -4,7 +4,7 @@ const koaJwt = require("koa-jwt");
 
 const app = new Koa();
 const db = require("promised-mongo")("sovote");
-require("../../common/ensure-mongodb-indexes")(db);
+require("./ensure-mongodb-indexes")(db);
 
 app.use(require("koa-bodyparser")());
 

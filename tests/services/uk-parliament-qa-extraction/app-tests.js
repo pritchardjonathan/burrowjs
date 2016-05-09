@@ -195,147 +195,150 @@ const mockQADetailResult = `<?xml version="1.0" encoding="utf-8"?>
 
 
 
-
-describe("uk parliament qa app", function(){
-  var sandbox,
-    mongoDbStub,
-    ensureIndexesStub,
-    requestStub,
-    cronStub,
-    sut;
-  before(function(){
-    mockery.enable({
-      warnOnReplace: false,
-      warnOnUnregistered: false,
-      useCleanCache: true
+describe("UK parliament QnA app", function(){
+  describe("app", function(){
+    var sandbox,
+      mongoDbStub,
+      ensureIndexesStub,
+      requestStub,
+      cronStub,
+      sut;
+    before(function(){
+      mockery.enable({
+        warnOnReplace: false,
+        warnOnUnregistered: false,
+        useCleanCache: true
+      });
+      mockery.registerAllowable("../../../services/uk-parliament-qa-extraction/app");
     });
-    mockery.registerAllowable("../../../services/uk-parliament-qa-extraction/app");
-  });
 
-  beforeEach(function () {
-    // Create a sandbox for the test
-    sandbox = sinon.sandbox.create();
+    beforeEach(function () {
+      // Create a sandbox for the test
+      sandbox = sinon.sandbox.create();
 
-    mongoDbStub = new MongoDbStub(sandbox);
-    mockery.registerMock("promised-mongo", mongoDbStub.stub);
+      mongoDbStub = new MongoDbStub(sandbox);
+      mockery.registerMock("promised-mongo", mongoDbStub.stub);
 
-    ensureIndexesStub = sandbox.stub();
-    mockery.registerMock("../../common/ensure-mongodb-indexes", ensureIndexesStub);
+      ensureIndexesStub = sandbox.stub();
+      mockery.registerMock("./ensure-mongodb-indexes", ensureIndexesStub);
 
-    requestStub = new RequestStub(sandbox);
-    requestStub.stub.hello = "world";
-    mockery.registerMock("request-promise", requestStub.stub);
+      requestStub = new RequestStub(sandbox);
+      requestStub.stub.hello = "world";
+      mockery.registerMock("request-promise", requestStub.stub);
 
-    mockery.registerMock("./config", config);
+      mockery.registerMock("./config", config);
 
-    cronStub = {
-      schedule: sandbox.spy(cron.schedule)
-    };
-    mockery.registerMock("node-cron", cronStub);
-  });
-
-  afterEach(function () {
-    // Restore all the things made through the sandbox
-    sandbox.restore();
-  });
-
-  it("ensures indexes on startup", function *(){
-    sut = new Sut();
-    assert.isTrue(ensureIndexesStub.calledOnce, "Doesn't ensure indexes");
-  });
-
-  it("schedules data.pariament QnA Atom feed to be extracted at the correct schedule", function *(){
-    sut = new Sut();
-    assert.isTrue(cronStub.schedule.calledWith(config.qAExtractCron, sinon.match.any), "Doesn't schedule Atom feed extraction using correct cron config");
-  });
-
-  it("queries data.parliament QnA Atom feed periodically api periodically", function *(){
-    var expectedRequestOptions = {
-      uri: config.qAAtomFeedUri,
-      method: "GET"
-    };
-    sut = new Sut();
-    yield new Promise(function(resolve, reject){
-      setTimeout(function(){
-        assert.isTrue(requestStub.stub.calledWith(expectedRequestOptions), "Doesn't query data.parliament QnA Atom feed");
-        resolve();
-      }, 1000);
+      cronStub = {
+        schedule: sandbox.spy(cron.schedule)
+      };
+      mockery.registerMock("node-cron", cronStub);
     });
-  });
 
-  it("queries data.parliament QnA xml data based on atom feed", function *(){
-    var atomFeedOptions = {
-        uri: "http://api.data.parliament.uk/resources/files/feed?dataset=7",
-        method: "GET"
-      },
-      qADetailOptions = {
-        uri: "http://api.data.parliament.uk/resources/files/516939.xml",
+    afterEach(function () {
+      // Restore all the things made through the sandbox
+      sandbox.restore();
+    });
+
+    it("ensures indexes on startup", function *(){
+      sut = new Sut();
+      assert.isTrue(ensureIndexesStub.calledOnce, "Doesn't ensure indexes");
+    });
+
+    it("schedules data.pariament QnA Atom feed to be extracted at the correct schedule", function *(){
+      sut = new Sut();
+      assert.isTrue(cronStub.schedule.calledWith(config.qAExtractCron, sinon.match.any), "Doesn't schedule Atom feed extraction using correct cron config");
+    });
+
+    it("queries data.parliament QnA Atom feed periodically api periodically", function *(){
+      var expectedRequestOptions = {
+        uri: config.qAAtomFeedUri,
         method: "GET"
       };
-    requestStub.stub.withArgs(atomFeedOptions).returns(Promise.resolve(mockAtomFeedResult));
-    requestStub.stub.withArgs(qADetailOptions).returns(Promise.resolve(mockQADetailResult));
-    sut = new Sut();
-    yield new Promise(function(resolve, reject){
-      setTimeout(function(){
-        assert.equal(requestStub.stub.withArgs(atomFeedOptions).callCount, 1, "Doesn't query data.parliament QnA Atom feed item details");
-        resolve();
-      }, 2000);
+      sut = new Sut();
+      yield new Promise(function(resolve, reject){
+        setTimeout(function(){
+          assert.isTrue(requestStub.stub.calledWith(expectedRequestOptions), "Doesn't query data.parliament QnA Atom feed");
+          resolve();
+        }, 1000);
+      });
     });
-  });
 
-  it("inserts transformed QnA xml data into mongo", function *(){
-    var atomFeedOptions = {
-        uri: "http://api.data.parliament.uk/resources/files/feed?dataset=7",
-        method: "GET"
-      },
-      qADetailOptions = {
-        uri: "http://api.data.parliament.uk/resources/files/516939.xml",
-        method: "GET"
-      },
-      expectedUpdateData ={
-        "parliamentDataId": 516154,
-        "heading": "Higher Education",
-        "answer": {
-          "id": 58367,
-          "member": {
-            "id": 4039,
-            "name": "Joseph Johnson",
-            "constituency": "Orpington"
-          },
-          "answeringBody": {
-            "id": 26,
-            "name": "Department for Business, Innovation and Skills",
-            "shortName": "Business, Innovation and Skills",
-            "sortName": "Business, Innovation and Skills"
-          },
-          "text": "<p>At the February European Council, the Government negotiated a new settlement, giving the United Kingdom a special status in a reformed European Union. The Government's position, as set out by my right hon. Friend the Prime Minister to the House on 22 February, is that the UK will be stronger, safer and better off remaining in a reformed EU.<\/p>",
-          "updated": new Date(1462270471463)
+    it("queries data.parliament QnA xml data based on atom feed", function *(){
+      var atomFeedOptions = {
+          uri: "http://api.data.parliament.uk/resources/files/feed?dataset=7",
+          method: "GET"
         },
-        "question": {
-          "id": 35759,
-          "member": {
-            "id": 4392,
-            "name": "Steven Paterson",
-            "constituency": "Stirling"
-          },
-          "targetBody": {
-            "id": 26,
-            "name": "Department for Business, Innovation and Skills",
-            "shortName": "Business, Innovation and Skills",
-            "sortName": "Business, Innovation and Skills"
-          },
-          "text": "To ask the Secretary of State for Business, Innovation and Skills, what assessment he has made of the potential implications for UK Erasmus students, lecturers and research fellows of the UK leaving the EU.",
-          "updated": new Date(1461792440897)
-        }
-      };
-    requestStub.stub.withArgs(atomFeedOptions).returns(Promise.resolve(mockAtomFeedResult));
-    requestStub.stub.withArgs(qADetailOptions).returns(Promise.resolve(mockQADetailResult));
-    sut = new Sut();
-    yield new Promise(function(resolve, reject){
-      setTimeout(function(){
-        assert.isTrue(mongoDbStub.collectionStub.update.calledWith({ parliamentDataId: expectedUpdateData.parliamentDataId }, expectedUpdateData, { upsert: true }));
-        resolve();
-      }, 2000);
+        qADetailOptions = {
+          uri: "http://api.data.parliament.uk/resources/files/516939.xml",
+          method: "GET"
+        };
+      requestStub.stub.withArgs(atomFeedOptions).returns(Promise.resolve(mockAtomFeedResult));
+      requestStub.stub.withArgs(qADetailOptions).returns(Promise.resolve(mockQADetailResult));
+      sut = new Sut();
+      yield new Promise(function(resolve, reject){
+        setTimeout(function(){
+          assert.equal(requestStub.stub.withArgs(atomFeedOptions).callCount, 1, "Doesn't query data.parliament QnA Atom feed item details");
+          resolve();
+        }, 2000);
+      });
     });
+
+    it("inserts transformed QnA xml data into mongo", function *(){
+      var atomFeedOptions = {
+          uri: "http://api.data.parliament.uk/resources/files/feed?dataset=7",
+          method: "GET"
+        },
+        qADetailOptions = {
+          uri: "http://api.data.parliament.uk/resources/files/516939.xml",
+          method: "GET"
+        },
+        expectedUpdateData ={
+          "parliamentDataId": 516154,
+          "heading": "Higher Education",
+          "answer": {
+            "id": 58367,
+            "member": {
+              "id": 4039,
+              "name": "Joseph Johnson",
+              "constituency": "Orpington"
+            },
+            "answeringBody": {
+              "id": 26,
+              "name": "Department for Business, Innovation and Skills",
+              "shortName": "Business, Innovation and Skills",
+              "sortName": "Business, Innovation and Skills"
+            },
+            "text": "<p>At the February European Council, the Government negotiated a new settlement, giving the United Kingdom a special status in a reformed European Union. The Government's position, as set out by my right hon. Friend the Prime Minister to the House on 22 February, is that the UK will be stronger, safer and better off remaining in a reformed EU.<\/p>",
+            "updated": new Date(1462270471463)
+          },
+          "question": {
+            "id": 35759,
+            "member": {
+              "id": 4392,
+              "name": "Steven Paterson",
+              "constituency": "Stirling"
+            },
+            "targetBody": {
+              "id": 26,
+              "name": "Department for Business, Innovation and Skills",
+              "shortName": "Business, Innovation and Skills",
+              "sortName": "Business, Innovation and Skills"
+            },
+            "text": "To ask the Secretary of State for Business, Innovation and Skills, what assessment he has made of the potential implications for UK Erasmus students, lecturers and research fellows of the UK leaving the EU.",
+            "updated": new Date(1461792440897)
+          }
+        };
+      requestStub.stub.withArgs(atomFeedOptions).returns(Promise.resolve(mockAtomFeedResult));
+      requestStub.stub.withArgs(qADetailOptions).returns(Promise.resolve(mockQADetailResult));
+      sut = new Sut();
+      yield new Promise(function(resolve, reject){
+        setTimeout(function(){
+          assert.isTrue(mongoDbStub.collectionStub.update.calledWith({ parliamentDataId: expectedUpdateData.parliamentDataId }, expectedUpdateData, { upsert: true }));
+          resolve();
+        }, 2000);
+      });
+    });
+
   });
 });
+
