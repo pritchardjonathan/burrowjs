@@ -6,6 +6,7 @@ const sinon = require("sinon"),
   cron = require("node-cron"),
   MongoDbStub = require("../../stubs/MongoDbStub"),
   RequestStub = require("../../stubs/RequestStub"),
+  BurrowStub = require("../../stubs/burrowStub"),
   Sut = require("../../../services/uk-parliament-qa-extraction/app"),
   config = {
     qAAtomFeedUri: "http://api.data.parliament.uk/resources/files/feed?dataset=7",
@@ -202,6 +203,7 @@ describe("UK parliament QnA app", function(){
       ensureIndexesStub,
       requestStub,
       cronStub,
+      burrowStub,
       sut;
     before(function(){
       mockery.enable({
@@ -232,6 +234,10 @@ describe("UK parliament QnA app", function(){
         schedule: sandbox.spy(cron.schedule)
       };
       mockery.registerMock("node-cron", cronStub);
+
+      burrowStub = new BurrowStub(sandbox);
+      mockery.registerMock("burrow", burrowStub.stub);
+
     });
 
     afterEach(function () {
@@ -246,7 +252,9 @@ describe("UK parliament QnA app", function(){
 
     it("schedules data.pariament QnA Atom feed to be extracted at the correct schedule", function *(){
       sut = new Sut();
-      assert.isTrue(cronStub.schedule.calledWith(config.qAExtractCron, sinon.match.any), "Doesn't schedule Atom feed extraction using correct cron config");
+      yield sut.burrowInstance.then(function(){
+        assert.isTrue(cronStub.schedule.calledWith(config.qAExtractCron, sinon.match.any), "Doesn't schedule Atom feed extraction using correct cron config");
+      });
     });
 
     it("queries data.parliament QnA Atom feed periodically api periodically", function *(){
@@ -255,12 +263,14 @@ describe("UK parliament QnA app", function(){
         method: "GET"
       };
       sut = new Sut();
-      yield new Promise(function(resolve, reject){
-        setTimeout(function(){
-          assert.isTrue(requestStub.stub.calledWith(expectedRequestOptions), "Doesn't query data.parliament QnA Atom feed");
-          resolve();
-        }, 1000);
-      });
+      yield sut.burrowInstance.then(function(){
+        return new Promise(function(resolve, reject){
+          setTimeout(function(){
+            assert.isTrue(requestStub.stub.calledWith(expectedRequestOptions), "Doesn't query data.parliament QnA Atom feed");
+            resolve();
+          }, 1000);
+        });
+      })
     });
 
     it("queries data.parliament QnA xml data based on atom feed", function *(){
