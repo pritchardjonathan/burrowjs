@@ -10,23 +10,22 @@ module.exports = function App(){
   const moment = require("moment");
   const log = require("../../common/logger")("Uk Parliament QA Extraction App");
   const burrow = require("burrow");
+  const self = this;
 
   const xml2jsOptions = {
     explicitArray: false,
     ignoreAttrs: true
   };
 
-  require("./ensure-mongodb-indexes")(db);
-
   log.info("Connecting burrow");
-   this.burrowInstance = burrow.connect(process.env.RABBITMQ, "UK Parliament QnA extraction service")
+  burrow.connect(process.env.RABBITMQ, "UK Parliament QnA extraction service")
     .then(function(){
       log.info("Burrow Connected");
       log.info(`Setting up cron schedule '${config.qAExtractCron}' for periodic extraction process`);
       cron.schedule(config.qAExtractCron, importQAAtomFeed);
       if(config.runQAExtractionImmediately){
         log.info("Performing setup extraction");
-        importQAAtomFeed();
+        self.initialImport = importQAAtomFeed();
       }
     })
     .catch(function(err){
@@ -35,7 +34,7 @@ module.exports = function App(){
 
   function importQAAtomFeed(){
     log.info("Querying Atom feed");
-    request({
+    return request({
       uri: config.qAAtomFeedUri,
       method: "GET"
     }).then(function(response){
@@ -84,23 +83,26 @@ module.exports = function App(){
         return Promise.all(serialiseResponses);
       })
       .then(function(qAReports){
-        var upserts = [];
-        // Upsert database
+        var qas = [];
         for(var report of qAReports){
           if(!Array.isArray(report.DailyReport.ReportQuestions)) report.DailyReport.ReportQuestions = [ report.DailyReport.ReportQuestions ];
           for(var reportQuestion of report.DailyReport.ReportQuestions){
             if(!Array.isArray(reportQuestion.ReportQuestion)) reportQuestion.ReportQuestion = [ reportQuestion.ReportQuestion ];
             for(var question of reportQuestion.ReportQuestion){
-              let qa = transformQA(question);
-              upserts.push(qaCollection.update({ parliamentDataId: qa.parliamentDataId }, qa, { upsert: true }));
+              qas.push(transformQA(question));
             }
           }
         }
-        log.info(`Importing ${upserts.length} QnA entities`);
-        return Promise.all(upserts)
-          .then(function(){
-
-          });
+        log.info(`Transformed ${qas.length} QnA entities`);
+        return qas;
+      })
+      .then(function(qas){
+        log.info(`Publishing ${qas.length} QnA entities`);
+        let publishes = [];
+        for(let qa of qas){
+          publishes.push(burrow.publish("uk-parliament-qa-extracted", qa));
+        }
+        return Promise.all(publishes);
       })
       .then(function(){
         log.info("Finished import");

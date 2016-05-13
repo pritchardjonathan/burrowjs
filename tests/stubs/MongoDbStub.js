@@ -15,6 +15,8 @@ module.exports = class MongoDbStub{
     self.collectionStub.skip.returns(self.collectionStub);
     self.collectionStub.limit.returns(self.collectionStub);
     self.collectionStub.toArray.returns(Promise.resolve([]));
+    self.collectionStub.insert.returns(Promise.resolve([]));
+    self.collectionStub.update.returns(Promise.resolve([]));
 
     self.stub = sandbox.stub().returns({
       collection: sandbox.stub().returns(self.collectionStub)

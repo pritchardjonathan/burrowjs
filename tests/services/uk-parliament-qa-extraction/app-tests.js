@@ -7,11 +7,7 @@ const sinon = require("sinon"),
   MongoDbStub = require("../../stubs/MongoDbStub"),
   RequestStub = require("../../stubs/RequestStub"),
   BurrowStub = require("../../stubs/burrowStub"),
-  Sut = require("../../../services/uk-parliament-qa-extraction/app"),
-  config = {
-    qAAtomFeedUri: "http://api.data.parliament.uk/resources/files/feed?dataset=7",
-    qAExtractCron: "* * * * * *"
-  };
+  Sut = require("../../../services/uk-parliament-qa-extraction/app");
 
 const mockAtomFeedResult = `
       <?xml version="1.0" encoding="utf-8"?>
@@ -196,7 +192,7 @@ const mockQADetailResult = `<?xml version="1.0" encoding="utf-8"?>
 
 
 
-describe("UK parliament QnA app", function(){
+describe("UK parliament QnA extraction app", function(){
   describe("app", function(){
     var sandbox,
       mongoDbStub,
@@ -204,7 +200,8 @@ describe("UK parliament QnA app", function(){
       requestStub,
       cronStub,
       burrowStub,
-      sut;
+      sut,
+      config;
     before(function(){
       mockery.enable({
         warnOnReplace: false,
@@ -221,13 +218,14 @@ describe("UK parliament QnA app", function(){
       mongoDbStub = new MongoDbStub(sandbox);
       mockery.registerMock("promised-mongo", mongoDbStub.stub);
 
-      ensureIndexesStub = sandbox.stub();
-      mockery.registerMock("./ensure-mongodb-indexes", ensureIndexesStub);
-
       requestStub = new RequestStub(sandbox);
       requestStub.stub.hello = "world";
       mockery.registerMock("request-promise", requestStub.stub);
 
+      config = {
+        qAAtomFeedUri: "http://api.data.parliament.uk/resources/files/feed?dataset=7",
+        qAExtractCron: "* * * * * *"
+      };
       mockery.registerMock("./config", config);
 
       cronStub = {
@@ -245,25 +243,20 @@ describe("UK parliament QnA app", function(){
       sandbox.restore();
     });
 
-    it("ensures indexes on startup", function *(){
-      sut = new Sut();
-      assert.isTrue(ensureIndexesStub.calledOnce, "Doesn't ensure indexes");
-    });
-
     it("schedules data.pariament QnA Atom feed to be extracted at the correct schedule", function *(){
       sut = new Sut();
-      yield sut.burrowInstance.then(function(){
+      yield burrowStub.connectPromise.then(function(){
         assert.isTrue(cronStub.schedule.calledWith(config.qAExtractCron, sinon.match.any), "Doesn't schedule Atom feed extraction using correct cron config");
       });
     });
 
-    it("queries data.parliament QnA Atom feed periodically api periodically", function *(){
+    it("queries data.parliament QnA Atom feed api periodically", function *(){
       var expectedRequestOptions = {
         uri: config.qAAtomFeedUri,
         method: "GET"
       };
       sut = new Sut();
-      yield sut.burrowInstance.then(function(){
+      yield burrowStub.connectPromise.then(function(){
         return new Promise(function(resolve, reject){
           setTimeout(function(){
             assert.isTrue(requestStub.stub.calledWith(expectedRequestOptions), "Doesn't query data.parliament QnA Atom feed");
@@ -284,16 +277,16 @@ describe("UK parliament QnA app", function(){
         };
       requestStub.stub.withArgs(atomFeedOptions).returns(Promise.resolve(mockAtomFeedResult));
       requestStub.stub.withArgs(qADetailOptions).returns(Promise.resolve(mockQADetailResult));
+      config.runQAExtractionImmediately = true;
       sut = new Sut();
-      yield new Promise(function(resolve, reject){
-        setTimeout(function(){
+      yield burrowStub.connectPromise.then(function(){
+        sut.initialImport.then(function(){
           assert.equal(requestStub.stub.withArgs(atomFeedOptions).callCount, 1, "Doesn't query data.parliament QnA Atom feed item details");
-          resolve();
-        }, 2000);
+        });
       });
     });
 
-    it("inserts transformed QnA xml data into mongo", function *(){
+    it("publishes transformed QnA on burrow", function *(){
       var atomFeedOptions = {
           uri: "http://api.data.parliament.uk/resources/files/feed?dataset=7",
           method: "GET"
@@ -302,7 +295,7 @@ describe("UK parliament QnA app", function(){
           uri: "http://api.data.parliament.uk/resources/files/516939.xml",
           method: "GET"
         },
-        expectedUpdateData ={
+        expectedQa = {
           "parliamentDataId": 516154,
           "heading": "Higher Education",
           "answer": {
@@ -340,15 +333,14 @@ describe("UK parliament QnA app", function(){
         };
       requestStub.stub.withArgs(atomFeedOptions).returns(Promise.resolve(mockAtomFeedResult));
       requestStub.stub.withArgs(qADetailOptions).returns(Promise.resolve(mockQADetailResult));
+      config.runQAExtractionImmediately = true;
       sut = new Sut();
-      yield new Promise(function(resolve, reject){
-        setTimeout(function(){
-          assert.isTrue(mongoDbStub.collectionStub.update.calledWith({ parliamentDataId: expectedUpdateData.parliamentDataId }, expectedUpdateData, { upsert: true }));
-          resolve();
-        }, 2000);
+      yield burrowStub.connectPromise.then(function(){
+        sut.initialImport.then(function(){
+          assert.isTrue(burrowStub.stub.publish.calledWith("uk-parliament-qa-extracted", expectedQa));
+        });
       });
     });
-
   });
 });
 
