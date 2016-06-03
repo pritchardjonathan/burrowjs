@@ -17,6 +17,8 @@
   },
   "dependencies": {
     "bcrypt": "^0.8.5",
+    "bluebird": "^3.4.0",
+    "burrow": "git+ssh://git@bitbucket.org/pritchardjonathan/burrow.git",
     "jsonwebtoken": "^5.7.0",
     "koa": "^1.2.0",
     "koa-bodyparser": "^2.0.1",
@@ -25,6 +27,7 @@
     "moment": "^2.13.0",
     "mongodb": "^2.1.18",
     "node-cron": "^1.1.1",
+    "object-hash": "^1.1.2",
     "promised-mongo": "^1.2.0",
     "request-promise": "^2.0.1",
     "xml2js": "^0.4.16"
