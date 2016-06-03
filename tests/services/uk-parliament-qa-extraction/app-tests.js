@@ -4,7 +4,6 @@ const sinon = require("sinon"),
   mockery = require("mockery"),
   assert = require("chai").assert,
   cron = require("node-cron"),
-  MongoDbStub = require("../../stubs/MongoDbStub"),
   RequestStub = require("../../stubs/RequestStub"),
   BurrowStub = require("../../stubs/burrowStub"),
   Sut = require("../../../services/uk-parliament-qa-extraction/app");
@@ -195,8 +194,6 @@ const mockQADetailResult = `<?xml version="1.0" encoding="utf-8"?>
 describe("UK parliament QnA extraction app", function(){
   describe("app", function(){
     var sandbox,
-      mongoDbStub,
-      ensureIndexesStub,
       requestStub,
       cronStub,
       burrowStub,
@@ -215,11 +212,7 @@ describe("UK parliament QnA extraction app", function(){
       // Create a sandbox for the test
       sandbox = sinon.sandbox.create();
 
-      mongoDbStub = new MongoDbStub(sandbox);
-      mockery.registerMock("promised-mongo", mongoDbStub.stub);
-
       requestStub = new RequestStub(sandbox);
-      requestStub.stub.hello = "world";
       mockery.registerMock("request-promise", requestStub.stub);
 
       config = {

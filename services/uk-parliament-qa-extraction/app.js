@@ -10,7 +10,7 @@ module.exports = function App(){
   const moment = require("moment");
   const log = require("../../common/logger")("Uk Parliament QA Extraction App");
   const burrow = require("burrow");
-  const self = this;
+  const self = this || {};
 
   const xml2jsOptions = {
     explicitArray: false,
@@ -87,6 +87,7 @@ module.exports = function App(){
         for(var report of qAReports){
           if(!Array.isArray(report.DailyReport.ReportQuestions)) report.DailyReport.ReportQuestions = [ report.DailyReport.ReportQuestions ];
           for(var reportQuestion of report.DailyReport.ReportQuestions){
+            if(typeof(reportQuestion) === "string") continue;
             if(!Array.isArray(reportQuestion.ReportQuestion)) reportQuestion.ReportQuestion = [ reportQuestion.ReportQuestion ];
             for(var question of reportQuestion.ReportQuestion){
               qas.push(transformQA(question));

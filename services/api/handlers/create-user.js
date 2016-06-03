@@ -20,7 +20,7 @@ module.exports = function(db) {
       return;
     }
 
-    yield  usersCollection
+    yield usersCollection
         .find({ email: email })
         .toArray()
         .then(function (existingUsers) {

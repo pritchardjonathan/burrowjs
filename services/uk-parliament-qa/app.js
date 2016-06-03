@@ -25,7 +25,7 @@ module.exports = function App(){
       log.info("Subscribing for QnA extractions");
 
       burrow.subscribe("uk-parliament-qa-extracted", function(qa){
-        log.info("Received QnA extraction");
+        log.info("Received QnA extraction event");
         qaCollection.update({ parliamentDataId: qa.parliamentDataId }, qa, { upsert: true })
           .then(function(){
             log.info("Upserted QnA");

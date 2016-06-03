@@ -16,8 +16,6 @@ describe("UK parliament QnA app", function(){
     var sandbox,
       mongoDbStub,
       ensureIndexesStub,
-      requestStub,
-      cronStub,
       burrowStub,
       sut;
     before(function(){
