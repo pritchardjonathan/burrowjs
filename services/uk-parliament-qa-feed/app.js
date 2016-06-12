@@ -8,7 +8,7 @@ module.exports = function App(){
   const xml2js = require("xml2js");
   const qaCollection = db.collection("qnas");
   const moment = require("moment");
-  const log = require("../../common/logger")("Uk Parliament QA Extraction App");
+  const log = require("../../common/logger")("Uk Parliament QA Feed App");
   const burrow = require("burrow");
 
   const xml2jsOptions = {
@@ -26,7 +26,11 @@ module.exports = function App(){
 
       burrow.subscribe("uk-parliament-qa-extracted", function(qa){
         log.info("Received QnA extraction event");
-        qaCollection.update({ parliamentDataId: qa.parliamentDataId }, qa, { upsert: true })
+        let qaFeedItem = {
+          type: "uk-parliament-qa",
+          body: qa
+        };
+        qaCollection.update({ "body.parliamentDataId": qa.parliamentDataId }, qaFeedItem, { upsert: true })
           .then(function(){
             log.info("Upserted QnA");
           })

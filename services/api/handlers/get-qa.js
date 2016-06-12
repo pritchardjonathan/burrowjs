@@ -22,6 +22,7 @@ module.exports = function(){
 
       this.body = yield burrow.rpc.call("uk-parliament-qa-get", payload);
     } catch(err) {
+      throw err;
       console.log(err);
       this.status = 500;
     }

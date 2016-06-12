@@ -7,45 +7,48 @@ const request = require("request-promise");
 const apiUrl = "http://localhost:5000/api/uk-parliament-qa";
 
 
-exports.generateQAs = function(count, options){
+exports.generateQAFeedItems = function(count, options){
 
   var qas = [];
   for(var i = 0; i < count; i++){
     qas.push({
       "_id" : pMongo.ObjectId(),
-      "parliamentDataId" : utils.generateInteger(1, 100000),
-      "heading" : "heading " + i,
-      "answer" : {
-        "id" : utils.generateInteger(1, 5000),
-        "member" : {
-          "id" : utils.generateInteger(1, 10000),
-          "name" : "name " + i,
-          "constituency" : "constituency " + i
+      "type": "uk-parliament-qa",
+      body: {
+        "parliamentDataId": utils.generateInteger(1, 100000),
+        "heading": "heading " + i,
+        "answer": {
+          "id": utils.generateInteger(1, 5000),
+          "member": {
+            "id": utils.generateInteger(1, 10000),
+            "name": "name " + i,
+            "constituency": "constituency " + i
+          },
+          "answeringBody": {
+            "id": utils.generateInteger(1, 100),
+            "name": "name " + i,
+            "shortName": "shortName " + i,
+            "sortName": "sortName " + i
+          },
+          "text": "text " + i,
+          "updated": utils.generateDateString(1262304000000, new Date().getTime())
         },
-        "answeringBody" : {
-          "id" : utils.generateInteger(1, 100),
-          "name" : "name " + i,
-          "shortName" : "shortName " + i,
-          "sortName" : "sortName " + i
-        },
-        "text" : "text " + i,
-        "updated" : utils.generateDateString(1262304000000, new Date().getTime())
-      },
-      "question" : {
-        "id" : utils.generateInteger(1, 50000),
-        "member" : {
-          "id" : utils.generateInteger(1, 10000),
-          "name" : "name " + i,
-          "constituency" : "constituency " + i
-        },
-        "targetBody" : {
-          "id" : utils.generateInteger(1, 100),
-          "name" : "name " + i,
-          "shortName" : "shortName " + i,
-          "sortName" : "sortName " + i
-        },
-        "text" : "text " + i,
-        "updated" : utils.generateDateString(1262304000000, new Date().getTime())
+        "question": {
+          "id": utils.generateInteger(1, 50000),
+          "member": {
+            "id": utils.generateInteger(1, 10000),
+            "name": "name " + i,
+            "constituency": "constituency " + i
+          },
+          "targetBody": {
+            "id": utils.generateInteger(1, 100),
+            "name": "name " + i,
+            "shortName": "shortName " + i,
+            "sortName": "sortName " + i
+          },
+          "text": "text " + i,
+          "updated": utils.generateDateString(1262304000000, new Date().getTime())
+        }
       }
     });
   }

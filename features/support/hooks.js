@@ -1,11 +1,11 @@
 "use strict";
 
 const db = require("promised-mongo")("sovote");
-const qaDb = require("promised-mongo")("sovote-uk-parliament-qa-service");
+const qaDb = require("promised-mongo")("sovote-uk-parliament-qa-feed-service");
 //const mpDb = require("promised-mongo")("sovote-uk-parliament-mp-service");
 const mpExtractionDb = require("promised-mongo")("sovote-uk-parliament-mp-extraction-service");
 const apiEnsureDbIndexes = require("../../services/api/ensure-mongodb-indexes");
-const qaEnsureDbIndexes = require("../../services/uk-parliament-qa/ensure-mongodb-indexes");
+const qaEnsureDbIndexes = require("../../services/uk-parliament-qa-feed/ensure-mongodb-indexes");
 
 module.exports = function(){
   this.After(function(scenario, callback){

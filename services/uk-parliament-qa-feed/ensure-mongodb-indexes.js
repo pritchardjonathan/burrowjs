@@ -1,7 +1,7 @@
 "use strict";
 
 module.exports = function(db){
-  return db.collection("uk-parliament-qnas").ensureIndex({
+  return db.collection("qnas").ensureIndex({
       "heading": "text",
       "answer.member.name": "text",
       "answer.answer.answeringBody.name": "text",

@@ -5,7 +5,7 @@ const sinon = require("sinon"),
   assert = require("chai").assert,
   MongoDbStub = require("../../stubs/MongoDbStub"),
   BurrowStub = require("../../stubs/burrowStub"),
-  Sut = require("../../../services/uk-parliament-qa/app"),
+  Sut = require("../../../services/uk-parliament-qa-feed/app"),
   config = {
     qAAtomFeedUri: "http://api.data.parliament.uk/resources/files/feed?dataset=7",
     qAExtractCron: "* * * * * *"
@@ -24,7 +24,7 @@ describe("UK parliament QnA app", function(){
         warnOnUnregistered: false,
         useCleanCache: true
       });
-      mockery.registerAllowable("../../../services/uk-parliament-qa/app");
+      mockery.registerAllowable("../../../services/uk-parliament-qa-feed/app");
     });
 
     beforeEach(function () {
@@ -54,8 +54,8 @@ describe("UK parliament QnA app", function(){
       assert.isTrue(ensureIndexesStub.calledOnce, "Doesn't ensure indexes");
     });
 
-    it("Upserts QnA entries in mongo", function *(){
-      var extractedQA ={
+    it("Upserts QnA feed item in mongo", function *(){
+      var extractedQA = {
           "parliamentDataId": 516154,
           "heading": "Higher Education",
           "answer": {
@@ -95,8 +95,11 @@ describe("UK parliament QnA app", function(){
       yield burrowStub.connectPromise.then(function(){
         // Trigger subscriber callback
         burrowStub.stub.subscribe.withArgs("uk-parliament-qa-extracted").firstCall.args[1](extractedQA);
-
-        assert.isTrue(mongoDbStub.collectionStub.update.calledWith({ parliamentDataId: extractedQA.parliamentDataId }, extractedQA, { upsert: true }));
+        let expected = {
+          type: "uk-parliament-qa",
+          body: extractedQA
+        };
+        assert.isTrue(mongoDbStub.collectionStub.update.calledWith({ "body.parliamentDataId": extractedQA.parliamentDataId }, expected, { upsert: true }));
       });
     });
 

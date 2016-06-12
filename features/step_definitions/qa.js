@@ -6,7 +6,7 @@ var qaSupport = require("../support/qa"),
   expect = require("chai").expect,
   pMongo = require("promised-mongo"),
   utils = require("../support/utils"),
-  db = pMongo("sovote-uk-parliament-qa-service"),
+  db = pMongo("sovote-uk-parliament-qa-feed-service"),
   qaCollection = db.collection("qnas");
 
 var myStepDefinitionsWrapper = function () {
@@ -14,7 +14,7 @@ var myStepDefinitionsWrapper = function () {
 
   this.Given(/^(\d+) QnAs exist$/, function (qaCount, callback) {
     let world = this,
-      qas = qaSupport.generateQAs(qaCount);
+      qas = qaSupport.generateQAFeedItems(qaCount);
     qaCollection.insert(qas)
       .then(function(){
         world.qas = world.qas.concat(qas);
