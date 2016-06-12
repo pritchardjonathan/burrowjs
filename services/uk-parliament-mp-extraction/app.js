@@ -8,7 +8,7 @@ module.exports = function App(){
   const hash = require("object-hash");
   const request = require("request-promise");
   const Promise = require("bluebird");
-  const rateLimitDelay = 5000;
+  const rateLimitDelay = process.env.RATE_LIMIT_DELAY || 5000;
 
   log.info("Connecting burrow");
   burrow.connect(process.env.RABBITMQ, "UK Parliament MP extraction service")
@@ -28,7 +28,7 @@ module.exports = function App(){
     });
 
   function checkUpdateMember(member){
-    log.info(`Checking member '${member.name}'...`)
+    log.info(`Checking member '${member.name}'...`);
     return getMemberRecord(member.id)
       .then(function(memberRecord){
         let cutoff = Date.now() - (1000 * 60 * 60 * 24);
@@ -71,13 +71,12 @@ module.exports = function App(){
         return record;
       });
   }
-
   function extractMemberDetails(id){
     return request({
       uri: "http://data.parliament.uk/membersdataplatform/services/mnis/members/query/id=" + id,
       method: "GET",
       headers: {
-        "Content-Type": "application/json ; charset=utf-8"
+        "Content-Type": "application/json; charset=utf-8"
       }
     }).then(function(response){
       var jsonResponse = JSON.parse(cleanString(response));
@@ -93,6 +92,7 @@ module.exports = function App(){
 
   function cleanString(input) {
     var output = "";
+    if(!input) return output;
     for (var i=0; i<input.length; i++) {
       if (input.charCodeAt(i) <= 127) {
         output += input.charAt(i);

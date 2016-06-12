@@ -36,6 +36,8 @@ describe("UK parliament MP service", function(){
       // Create a sandbox for the test
       sandbox = sinon.sandbox.create();
 
+      process.env.RATE_LIMIT_DELAY  = 1;
+
       requestStub = new RequestStub(sandbox);
       requestStub.stub.hello = "world";
       mockery.registerMock("request-promise", requestStub.stub);
@@ -87,14 +89,14 @@ describe("UK parliament MP service", function(){
         uri: "http://data.parliament.uk/membersdataplatform/services/mnis/members/query/id=4392",
         method: "GET",
         headers: {
-          "Content-Type": "application/json"
+          "Content-Type": "application/json; charset=utf-8"
         }
       };
       aMpDetailOptions = {
         uri: "http://data.parliament.uk/membersdataplatform/services/mnis/members/query/id=4039",
         method: "GET",
         headers: {
-          "Content-Type": "application/json"
+          "Content-Type": "application/json; charset=utf-8"
         }
       };
 
@@ -178,8 +180,8 @@ describe("UK parliament MP service", function(){
       mockAMPExtraction = JSON.parse(mockAMPRawExtraction)
 
       hashStub = sandbox.stub();
-      hashStub.withArgs(mockQMPExtraction.Members.Member).returns(Promise.resolve("firsthash"));
-      hashStub.withArgs(mockAMPExtraction.Members.Member).returns(Promise.resolve("secondhash"));
+      hashStub.withArgs(mockQMPExtraction.Members.Member).returns("firsthash");
+      hashStub.withArgs(mockAMPExtraction.Members.Member).returns("secondhash");
       mockery.registerMock("object-hash", hashStub);
 
     });
@@ -256,16 +258,22 @@ describe("UK parliament MP service", function(){
           var handler = burrowStub.stub.subscribe.withArgs("uk-parliament-qa-extracted").firstCall.args[1];
           return handler(mockExtractedQA)
             .then(function(){
-              sinon.assert.calledWithMatch(mongoDbStub.collectionStub.update.firstCall, sinon.match(function(value){
-                return value.memberId == 4392 &&
-                  value.hash == "firsthash" &&
-                  value.updated.getTime() > Date.now() - 100;
-              }, "Questioner record not updated correctly"));
-              sinon.assert.calledWithMatch(mongoDbStub.collectionStub.update.secondCall, sinon.match(function(value){
-                return value.memberId == 4039 &&
-                  value.hash == "secondhash" &&
-                  value.updated.getTime() > Date.now() - 100;
-              }, "Answerer record not updated correctly"));
+              assert.isTrue(mongoDbStub.collectionStub.update.calledWith({
+                  memberId: 4392 },
+                sinon.match(function(value){
+                  return value.memberId == 4392 &&
+                    value.hash == "firsthash" &&
+                    value.updated.getTime() > Date.now() - 100;
+                }, "Questioner record not updated correctly"),
+                { upsert: true }));
+              assert.isTrue(mongoDbStub.collectionStub.update.calledWith({
+                  memberId: 4039 },
+                sinon.match(function(value){
+                  return value.memberId == 4039 &&
+                    value.hash == "secondhash" &&
+                    value.updated.getTime() > Date.now() - 100;
+                }, "Answerer record not updated correctly"),
+                { upsert: true }));
             });
         });
       });
@@ -332,16 +340,22 @@ describe("UK parliament MP service", function(){
           var handler = burrowStub.stub.subscribe.withArgs("uk-parliament-qa-extracted").firstCall.args[1];
           return handler(mockExtractedQA)
             .then(function(){
-              sinon.assert.calledWithMatch(mongoDbStub.collectionStub.update.firstCall, sinon.match(function(value){
-                return value.memberId == 4392 &&
-                  value.hash == "firsthash" &&
-                  value.updated.getTime() > Date.now() - 100;
-              }, "Questioner record not updated correctly"));
-              sinon.assert.calledWithMatch(mongoDbStub.collectionStub.update.secondCall, sinon.match(function(value){
-                return value.memberId == 4039 &&
-                  value.hash == "secondhash" &&
-                  value.updated.getTime() > Date.now() - 100;
-              }, "Answerer record not updated correctly"));
+              assert.isTrue(mongoDbStub.collectionStub.update.calledWith(
+                { memberId: 4392 },
+                sinon.match(function(value){
+                  return value.memberId == 4392 &&
+                    value.hash == "firsthash" &&
+                    value.updated.getTime() > Date.now() - 100;
+                }, "Questioner record not updated correctly"),
+                { upsert: true }));
+              assert.isTrue(mongoDbStub.collectionStub.update.calledWith(
+                { memberId: 4039 },
+                sinon.match(function(value){
+                  return value.memberId == 4039 &&
+                    value.hash == "secondhash" &&
+                    value.updated.getTime() > Date.now() - 100;
+                }, "Answerer record not updated correctly"),
+                { upsert: true }));
             });
         });
       });
