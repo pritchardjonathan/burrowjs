@@ -1,12 +1,12 @@
 "use strict";
 
 module.exports = function App(){
-  const db = require("promised-mongo")("sovote");
+  const db = require("promised-mongo")(process.env.MONGODB_NAME);
   const request = require("request-promise");
   const config = require("./config");
   const cron = require("node-cron");
   const xml2js = require("xml2js");
-  const qaCollection = db.collection("uk-parliament-qnas");
+  const qaCollection = db.collection("qnas");
   const moment = require("moment");
   const log = require("../../common/logger")("Uk Parliament QA Extraction App");
   const burrow = require("burrow");
@@ -21,7 +21,7 @@ module.exports = function App(){
   log.info("Connecting burrow");
   burrow.connect(process.env.RABBITMQ, "UK Parliament QnA extraction service")
     .then(function(){
-      log.info("Burrow Connected");
+      log.info("Burrow connected");
       log.info("Subscribing for QnA extractions");
 
       burrow.subscribe("uk-parliament-qa-extracted", function(qa){
@@ -33,6 +33,14 @@ module.exports = function App(){
           .catch(function(err){
             log.error(err);
           });
+      });
+
+      burrow.rpc.listen("uk-parliament-qa-get", "0.0.0", function(payload){
+        return qaCollection
+          .find({})
+          .skip(payload.skip)
+          .limit(payload.take)
+          .toArray();
       });
     })
     .catch(function(err){

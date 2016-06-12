@@ -9,5 +9,5 @@ module.exports = function(db){
       "question.member.name": "text",
       "question.text": "text",
       "answer.updated": 1
-    });
+    }, { name: "search" });
 };

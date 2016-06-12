@@ -4,9 +4,12 @@ function World(){
 
   this.authenticatedUser = null;
   this.authenticationToken = null;
-  this.users = [];
-  this.searchResults = [];
 
+  this.users = [];
+
+  this.qas = [];
+
+  this.searchResults = [];
 
   this.response = null;
 }

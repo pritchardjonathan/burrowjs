@@ -11,6 +11,7 @@ app.use(require("koa-bodyparser")());
 // Unauthenticated
 app.use(route.post('/api/user', require("./handlers/create-user")(db)));
 app.use(route.get('/api/authentication', require("./handlers/get-authentication")(db)));
+app.use(route.get("/api/uk-parliament-qa", require("./handlers/get-qa")()));
 
 app.use(koaJwt({ secret: process.env.JWT_SECRET }));
 
