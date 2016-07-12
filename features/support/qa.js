@@ -4,6 +4,9 @@ const pMongo = require("promised-mongo");
 const utils = require("./utils");
 const request = require("request-promise");
 
+const db = pMongo("sovote-uk-parliament-qa-feed-service");
+const qaCollection = db.collection("qnas");
+
 const apiUrl = "http://localhost:5000/api/uk-parliament-qa";
 
 
@@ -73,4 +76,8 @@ exports.get = function(skip, take){
     if(!body) body = [];
     return { body, response };
   });
+};
+
+exports.insert = function(qa){
+  return qaCollection.insert(qa)
 };

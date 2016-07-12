@@ -2,10 +2,11 @@
 
 const db = require("promised-mongo")("sovote");
 const qaDb = require("promised-mongo")("sovote-uk-parliament-qa-feed-service");
-//const mpDb = require("promised-mongo")("sovote-uk-parliament-mp-service");
+const commentDb = require("promised-mongo")("sovote-comment-service");
 const mpExtractionDb = require("promised-mongo")("sovote-uk-parliament-mp-extraction-service");
 const apiEnsureDbIndexes = require("../../services/api/ensure-mongodb-indexes");
 const qaEnsureDbIndexes = require("../../services/uk-parliament-qa-feed/ensure-mongodb-indexes");
+const commentEnsureDbIndexes = require("../../services/comment/ensure-mongodb-indexes");
 
 module.exports = function(){
   this.After(function(scenario, callback){
@@ -13,20 +14,20 @@ module.exports = function(){
       .then(function(){
         return qaDb.collection("qnas").drop();
       })
-      /*.then(function(){
-        return mpDb.collection("mps").drop();
-      })*/
       .then(function(){
         return mpExtractionDb.collection("check-record").drop();
       })
       .then(function(){
         return apiEnsureDbIndexes(db);
       })
-      /*.then(function(){
-        return mpEnsureDbIndexes(db);
-      })*/
       .then(function(){
         return qaEnsureDbIndexes(db);
+      })
+      .then(function(){
+        return commentDb.collection("comments").drop();
+      })
+      .then(function(){
+        return commentEnsureDbIndexes(db);
       })
       .then(function(){
         callback();

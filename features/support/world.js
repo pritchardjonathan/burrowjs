@@ -9,7 +9,11 @@ function World(){
 
   this.qas = [];
 
+  this.comments = [];
+
   this.searchResults = [];
+
+  this.getResults = [];
 
   this.response = null;
 }

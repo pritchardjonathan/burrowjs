@@ -20,6 +20,9 @@ app.use(route.get('/api/user', require("./handlers/get-user")(db)));
 app.use(route.delete('/api/user/:id', require("./handlers/delete-user")(db)));
 app.use(route.post('/api/user/:id', require("./handlers/update-user")(db)));
 
+app.use(route.get('/api/comment', require("./handlers/get-comments")(db)));
+app.use(route.post('/api/comment', require("./handlers/post-comment")(db)));
+
 app.listen(5000);
 
 console.log("listening on port 5000");

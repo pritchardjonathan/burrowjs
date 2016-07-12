@@ -1,7 +1,8 @@
 "use strict";
 
 module.exports = function App(){
-  const db = require("promised-mongo")(process.env.MONGODB_NAME);
+  const pMongo = require("promised-mongo");
+  const db = pMongo(process.env.MONGODB_NAME);
   const request = require("request-promise");
   const config = require("./config");
   const cron = require("node-cron");
@@ -19,7 +20,7 @@ module.exports = function App(){
   require("./ensure-mongodb-indexes")(db);
 
   log.info("Connecting burrow");
-  burrow.connect(process.env.RABBITMQ, "UK Parliament QnA extraction service")
+  burrow.connect(process.env.RABBITMQ, "UK Parliament QnA Feed service")
     .then(function(){
       log.info("Burrow connected");
       log.info("Subscribing for QnA extractions");
@@ -39,12 +40,42 @@ module.exports = function App(){
           });
       });
 
+      burrow.subscribe("comment-created", function(comment){
+        if(comment.parentType != "uk-parliament-qa") return;
+        qaCollection
+          .findOne({ _id: pMongo.ObjectId(comment.parentId) })
+          .then(function(qa){
+            if(!qa) return;
+            if(!qa.commentCount) qa.commentCount = 0;
+            qa.commentCount++;
+            return qaCollection.update({ _id: qa._id }, qa, { })
+              .then(function(){
+                console.log("Hello World");
+              });
+          });
+      });
+
       burrow.rpc.listen("uk-parliament-qa-get", "0.0.0", function(payload){
         return qaCollection
           .find({})
           .skip(payload.skip)
           .limit(payload.take)
-          .toArray();
+          .toArray()
+          .then(function(qas){
+            return Promise.resolve(qas.map(function(qa){
+              qa.id = qa._id.toString();
+              delete qa["_id"];
+              return qa;
+            }));
+          });
+      });
+      burrow.rpc.listen("uk-parliament-qa-exists", "0.0.0", function(id){
+        if(!pMongo.ObjectId.isValid(id)) return Promise.resolve(false);
+        return qaCollection
+          .findOne({ _id: pMongo.ObjectId(id) })
+          .then(function(qa){
+            return !!qa;
+          })
       });
     })
     .catch(function(err){

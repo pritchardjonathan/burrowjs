@@ -1,13 +1,8 @@
 "use strict";
 
 var qaSupport = require("../support/qa"),
-  authSupport = require("../support/authentication"),
   world = require("../support/world"),
-  expect = require("chai").expect,
-  pMongo = require("promised-mongo"),
-  utils = require("../support/utils"),
-  db = pMongo("sovote-uk-parliament-qa-feed-service"),
-  qaCollection = db.collection("qnas");
+  expect = require("chai").expect;
 
 var myStepDefinitionsWrapper = function () {
   if(!this.world) this.world = world;
@@ -15,14 +10,33 @@ var myStepDefinitionsWrapper = function () {
   this.Given(/^(\d+) QnAs exist$/, function (qaCount, callback) {
     let world = this,
       qas = qaSupport.generateQAFeedItems(qaCount);
-    qaCollection.insert(qas)
+    qaSupport.insert(qas)
       .then(function(){
-        world.qas = world.qas.concat(qas);
+        world.qas = world.qas.concat(qas.map(function(qa){
+          qa.id = qa._id.toString();
+          delete qa["_id"];
+          return qa;
+        }));
         callback();
       })
       .catch(function(err){
         callback(err);
+      });
+  });
+
+  this.Given(/^a QA feed item exists$/, function (callback) {
+    let world = this,
+      qas = qaSupport.generateQAFeedItems(1);
+    qaSupport.insert(qas[0])
+      .then(function(insertedQa){
+        insertedQa.id = insertedQa._id.toString();
+        delete insertedQa["_id"];
+        world.qas.push(insertedQa);
+        callback();
       })
+      .catch(function(err){
+        callback(err);
+      });
   });
 
   this.When(/^I request QnA feed items, skipping the first (\d+) and taking the next (\d+)$/, function (skip, take, callback) {
@@ -44,11 +58,26 @@ var myStepDefinitionsWrapper = function () {
     let lastCreatedQnAs = this.qas.slice(this.qas.length - lastCount, this.qas.length);
     for(var qa of lastCreatedQnAs){
       var matchFound = this.searchResults.some(function(searchResult){
-        return searchResult._id === qa._id.toString();
+        return searchResult.id === qa.id;
       });
       expect(matchFound).to.be.true;
     }
 
+  });
+
+  this.Then(/^the QA feed items comment count should be (\d+)$/, function (commentCount, callback) {
+    let world = this;
+    qaSupport.get(0, 1)
+      .then(function(result){
+        expect(result.body).to.exist;
+        expect(result.body.length).to.equal(1);
+        expect(result.body[0].id).to.equal(world.qas[0].id);
+        expect(result.body[0].commentCount).to.equal(+commentCount);
+        callback();
+      })
+      .catch(function(err){
+        callback(err);
+      });
   });
 };
 module.exports = myStepDefinitionsWrapper;
