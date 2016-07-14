@@ -143,24 +143,10 @@ var myStepDefinitionsWrapper = function () {
     }
     expect(matchFound).to.be.true;
   });
+
+  this.Then(/^the QnA result should contain the comment$/, function () {
+    expect(this.searchResults.length).to.be.at.least(1);
+    expect(this.searchResults[0].commentCount).to.equal(1);
+  });
 };
 module.exports = myStepDefinitionsWrapper;
-
-function expectQaToHaveComment(qaId, comment){
-  return qaSupport.get(0, 10)
-    .then(function(result){
-      for(let serverQa of result.body){
-        if(pMongo.ObjectId(serverQa.id).equals(qaId)) return Promise.resolve(serverQa);
-      }
-      return Promise.resolve(null);
-    }).then(function(qa){
-      expect(qa).to.not.be.null;
-      let matchFound = false;
-      for(let serverComment in qa.body.comments){
-        if(serverComment.message === comment.message) return Promise.resolve(serverComment);
-      }
-      return Promise.resolve(null);
-    }).then(function(comment){
-      expect(comment).to.not.be.null;
-    });
-}

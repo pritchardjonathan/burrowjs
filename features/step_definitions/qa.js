@@ -49,6 +49,16 @@ var myStepDefinitionsWrapper = function () {
       });
   });
 
+  this.When(/^I request the QnA$/, function (callback) {
+    let world = this;
+    qaSupport.get(0, 100)
+      .then(function(result){
+        world.searchResults = result.body;
+        world.response = result.response;
+        callback();
+      });
+  });
+
   this.Then(/^The response should contain (\d+) QnA items$/, function (count) {
     expect(this.searchResults.length).to.equal(+count);
   });
