@@ -11,6 +11,8 @@ function World(){
 
   this.comments = [];
 
+  this.votes = [];
+
   this.searchResults = [];
 
   this.getResults = [];

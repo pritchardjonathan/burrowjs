@@ -50,7 +50,22 @@ module.exports = function App(){
             qa.commentCount++;
             return qaCollection.update({ _id: qa._id }, qa, { })
               .then(function(){
-                console.log("Hello World");
+                log.info(`Updated QA ${qa._id.toString()} with comment '${comment.message}'`);
+              });
+          });
+      });
+
+      burrow.subscribe("vote-created", function(vote){
+        if(vote.parentType != "uk-parliament-qa") return;
+        qaCollection
+          .findOne({ _id: pMongo.ObjectId(vote.parentId) })
+          .then(function(qa){
+            if(!qa) return;
+            if(!qa.voteScore) qa.voteScore = 0;
+            qa.voteScore += vote.score;
+            return qaCollection.update({ _id: qa._id }, qa, { })
+              .then(function(){
+                log.info(`Updated QA ${qa._id.toString()} with a vote of ${vote.score} creating a new voteScore of ${qa.voteScore}`);
               });
           });
       });
