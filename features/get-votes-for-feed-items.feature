@@ -1,4 +1,4 @@
-Feature: As a user I want to be able to get votes
+Feature: As a user I want to be able to get feed item votes
 
 
   Scenario: User gets QnA vote summary

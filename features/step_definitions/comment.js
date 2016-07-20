@@ -148,5 +148,48 @@ var myStepDefinitionsWrapper = function () {
     expect(this.searchResults.length).to.be.at.least(1);
     expect(this.searchResults[0].commentCount).to.equal(1);
   });
+
+  this.Then(/^the comment should have an overall vote score of ([^"]*)$/, function (expectedScore, callback) {
+    let world = this;
+    commentSupport.get("comment", world.comments[0].id, world.authenticationToken)
+      .then(function(result){
+        let commentId = world.comments[0].id;
+        let comment = null;
+        for(var gotComment of result.body){
+          if(gotComment.id == commentId){
+            comment = gotComment;
+            break;
+          }
+        }
+        expect(comment).to.not.be.null;
+        expect(comment.voteScore).to.equal(parseInt(expectedScore));
+        callback();
+      })
+      .catch(function(err){
+        callback(err);
+      });
+  });
+
+  this.When(/^I request the comment$/, function (callback) {
+    let world = this,
+      targetComment = world.comments[0];
+    commentSupport.get(targetComment.parentType, targetComment.parentId, world.authenticationToken)
+      .then(function(result){
+        let gotComment = null;
+        for(let comment of result.body){
+          if(comment.id === targetComment.id){
+            gotComment = comment;
+            break;
+          }
+        }
+        expect(gotComment).to.not.be.null;
+        world.response = result.response;
+        world.getResults = [ gotComment ];
+        callback();
+      })
+      .catch(function(err){
+        callback(err);
+      })
+  });
 };
 module.exports = myStepDefinitionsWrapper;

@@ -48,6 +48,20 @@ module.exports = function App(){
             return !!qa;
           })
       });
+      burrow.subscribe("vote-created", function(vote){
+        if(vote.parentType != "comment") return;
+        commentsCollection
+          .findOne({ _id: pMongo.ObjectId(vote.parentId) })
+          .then(function(comment){
+            if(!comment) return;
+            if(!comment.voteScore) comment.voteScore = 0;
+            comment.voteScore += vote.score;
+            return commentsCollection.update({ _id: comment._id }, comment, { })
+              .then(function(){
+                log.info(`Updated Comment ${comment._id.toString()} with a vote of ${vote.score} creating a new voteScore of ${comment.voteScore}`);
+              });
+          });
+      });
     })
     .catch(function(err){
       log.error(err);

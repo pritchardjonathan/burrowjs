@@ -48,6 +48,6 @@ module.exports = function(){
 parentIdCheckers["uk-parliament-qa"] = function(id){
   return burrow.rpc.call("uk-parliament-qa-exists", id);
 };
-parentIdCheckers["vote"] = function(id){
-  return burrow.rpc.call("vote-exists", id);
+parentIdCheckers["comment"] = function(id){
+  return burrow.rpc.call("comment-exists", id);
 };

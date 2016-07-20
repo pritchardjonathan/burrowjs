@@ -89,5 +89,30 @@ var myStepDefinitionsWrapper = function () {
         callback(err);
       });
   });
+
+  this.Then(/^the QA feed item should have an overall vote score of ([^"]*)$/, function (expectedScore, callback) {
+    let world = this;
+    qaSupport.get(0, 100)
+      .then(function(result){
+        let qaId = world.qas[0].id;
+        let qa = null;
+        for(var gotQa of result.body){
+          if(gotQa.id == qaId){
+            qa = gotQa;
+            break;
+          }
+        }
+        expect(qa).to.not.be.null;
+        expect(qa.voteScore).to.equal(parseInt(expectedScore));
+        callback();
+      });
+  });
+
+  this.Then(/^the QA feed item in results should have an overall vote score of ([^"]*)$/, function (expectedVoteScore) {
+    expect(this.searchResults).to.exist;
+    expect(this.searchResults.length).to.equal(1);
+    expect(this.searchResults[0].voteScore).to.equal(parseInt(expectedVoteScore));
+  });
+
 };
 module.exports = myStepDefinitionsWrapper;

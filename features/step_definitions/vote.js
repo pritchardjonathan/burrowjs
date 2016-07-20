@@ -49,12 +49,6 @@ var myStepDefinitionsWrapper = function () {
     }
   });
 
-  this.Then(/^the QA feed item should have an overall vote score of (\d+)$/, function (expectedVoteScore) {
-    expect(this.searchResults).to.exist;
-    expect(this.searchResults.length).to.equal(1);
-    expect(this.searchResults[0].voteScore).to.equal(parseInt(expectedVoteScore));
-  });
-
   this.When(/^I request votes for the QnA feed item$/, function (callback) {
     let world = this;
     voteSupport.get("uk-parliament-qa", world.qas[0].id, world.authenticationToken)
@@ -136,6 +130,131 @@ var myStepDefinitionsWrapper = function () {
         world.votes.push(result.body);
         world.response = result.response;
         callback();
+      })
+      .catch(function(err){
+        callback(err);
+      });
+  });
+
+  this.When(/^I ([up|down]*) vote the comment$/, function (direction, callback) {
+    let world = this,
+      vote = {
+        parentId: world.comments[0].id,
+        parentType: "comment",
+        score: direction === "up" ? 1 : -1
+      };
+    voteSupport.post(vote, world.authenticationToken)
+      .then(function(result){
+        world.votes.push(result.body);
+        world.response = result.response;
+        callback();
+      })
+      .catch(function(err){
+        callback(err);
+      })
+  });
+
+  this.Then(/^it should ([^"]*)appear among the comments votes$/, function (negated, callback) {
+    let world = this;
+    voteSupport.get("comment", world.comments[0].id, world.authenticationToken)
+      .then(function(result){
+        if(negated){
+          expect(result.response.statusCode).to.equal(401);
+          expect(result.body).to.be.a("string");
+        } else {
+          expect(result.response.statusCode).to.equal(200);
+          expect(result.body).to.not.be.a("string");
+          expect(result.body.length).to.be.at.least(1);
+          let match = null;
+          for(var vote of result.body){
+            if(vote.parentId === world.comments[0].id &&
+              vote.parentType === "comment" &&
+              vote.score == world.votes[0].score){
+              match = vote;
+            }
+          }
+          expect(match).to.not.be.null;
+        }
+        callback();
+      })
+      .catch(function(err){
+        callback(err);
+      })
+  });
+
+  this.When(/^I ([up|down]*) vote comment '([^"]*)'$/, function (direction, commentId, callback) {
+    let world = this,
+      vote = {
+        parentId: commentId,
+        parentType: "comment",
+        score: direction === "up" ? 1 : -1
+      };
+    voteSupport.post(vote, world.authenticationToken)
+      .then(function(result){
+        world.votes.push(result.body);
+        world.response = result.response;
+        callback();
+      })
+      .catch(function(err){
+        callback(err);
+      })
+  });
+
+  this.Given(/^the comment has (\d+) ([up|down]*) vote$/, function (voteCount, voteDirection, callback) {
+    let world = this;
+    voteCount = parseInt(voteCount);
+    let addVotePromises = [];
+    for(let i = 0; i < voteCount; i++){
+      addVotePromises.push(addVote(voteDirection === "up" ? 1 : -1));
+    }
+    Promise.all(addVotePromises)
+      .then(function(){
+        callback();
+      }).catch(function(err){
+      callback(err);
+    });
+
+    function addVote(score){
+      let vote = {
+        parentType: "comment",
+        parentId: world.comments[0].id,
+        score: score
+      };
+      return new Promise(function(resolve, reject){
+        voteSupport.post(vote, world.authenticationToken)
+          .then(function(createResult){
+            voteSupport.get("comment", world.comments[0].id, world.authenticationToken)
+              .then(function(getResult){
+                try {
+                  var matchFound = false;
+                  expect(getResult.body.length).to.not.equal(0);
+                  for(var vote of getResult.body){
+                    if(vote.id === createResult.body.id) matchFound = true;
+                  }
+                  expect(matchFound).to.be.true;
+                  world.votes.push(createResult.body);
+                  resolve();
+                } catch(err){
+                  reject();
+                }
+              });
+          }).catch(function(err){
+          reject(err);
+        });
+      })
+    }
+  });
+
+  this.When(/^I request votes for the comment$/, function (callback) {
+    let world = this;
+    voteSupport.get("comment", world.comments[0].id, world.authenticationToken)
+      .then(function(getResult){
+        expect(getResult.body.length).to.not.equal(0);
+        world.getResults = getResult.body;
+        callback();
+      })
+      .catch(function(err){
+        callback(err);
       });
   });
 };
